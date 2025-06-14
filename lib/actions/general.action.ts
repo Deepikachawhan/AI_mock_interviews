@@ -6,6 +6,7 @@ import { google } from "@ai-sdk/google";
 import { db } from "@/firebase/admin";
 import { feedbackSchema } from "@/constants";
 
+// CREATE FEEDBACK DOCUMENT
 export async function createFeedback(params: CreateFeedbackParams) {
     const { interviewId, userId, transcript, feedbackId } = params;
 
@@ -66,12 +67,13 @@ export async function createFeedback(params: CreateFeedbackParams) {
     }
 }
 
+// FETCH SINGLE INTERVIEW
 export async function getInterviewById(id: string): Promise<Interview | null> {
     const interview = await db.collection("interviews").doc(id).get();
-
     return interview.data() as Interview | null;
 }
 
+// FETCH FEEDBACK FOR A SPECIFIC INTERVIEW
 export async function getFeedbackByInterviewId(
     params: GetFeedbackByInterviewIdParams
 ): Promise<Feedback | null> {
@@ -90,6 +92,7 @@ export async function getFeedbackByInterviewId(
     return { id: feedbackDoc.id, ...feedbackDoc.data() } as Feedback;
 }
 
+// FETCH LATEST INTERVIEWS (excluding current user's)
 export async function getLatestInterviews(
     params: GetLatestInterviewsParams
 ): Promise<Interview[] | null> {
@@ -99,7 +102,7 @@ export async function getLatestInterviews(
         .collection("interviews")
         .orderBy("createdAt", "desc")
         .where("finalized", "==", true)
-        .where("userId", "!=", userId)
+        .where("userId", "!=", userId) // 🔥 Requires Composite Index
         .limit(limit)
         .get();
 
@@ -109,13 +112,14 @@ export async function getLatestInterviews(
     })) as Interview[];
 }
 
+// FETCH INTERVIEWS FOR SPECIFIC USER
 export async function getInterviewsByUserId(
     userId: string
 ): Promise<Interview[] | null> {
     const interviews = await db
         .collection("interviews")
         .where("userId", "==", userId)
-        .orderBy("createdAt", "desc")
+        .orderBy("createdAt", "desc") // 🔥 Requires Composite Index (already created)
         .get();
 
     return interviews.docs.map((doc) => ({
